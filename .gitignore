@@ -1,0 +1,37 @@
+# macOS
+.DS_Store
+
+# node_modules (클라, 서버 모두)
+**/node_modules/
+
+# 환경 변수 파일 (클라, 서버 모두)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 빌드 결과물 (클라, 서버 모두)
+**/build/
+**/dist/
+
+# 로그 파일
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 테스트 커버리지
+coverage/
+
+# IDE 관련 (VSCode, IntelliJ 등)
+.vscode/
+.idea/
+
+# OS 관련
+Thumbs.db
+Desktop.ini
+
+# 기타 (혹시 docker 쓰면)
+docker-compose.override.yml
+.envrc
