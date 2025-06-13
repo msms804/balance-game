@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
 const db = require('./db');
 
 const app = express();
@@ -38,4 +39,44 @@ app.get('/api/hello', (req, res) => {
   
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+});
+
+// POST api/signup, 회원가입
+app.post('/api/signup', async (req, res) => {
+  const { login_id, password, username } = req.body;
+
+  // 요청 바디가 모두 들어왔는지 체크
+  if (!login_id || !password || !username) {
+    return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
+  }
+
+  // 이미 존재하는 login_id인지 중복 확인
+  try {
+    const checkSql = 'SELECT * FROM Users WHERE login_id = ?';
+    db.query(checkSql, [login_id], async (err, results) => {
+      if (err) {
+        console.error('DB 오류:', err);
+        return res.status(500).json({error: 'DB 오류'});
+      }
+
+      if (results.length > 0) {
+        // login_id 중복
+        return res.status(409).json({ error: '이미 존재하는 로그인 ID입니다.' });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      const insertSql = 'INSERT INTO Users (login_id, password, username) VALUES (?, ?, ?)';
+      db.query(insertSql, [login_id, hashedPassword, username], (err, result) => {
+        if (err) {
+          console.error('회원가입 실패:', err);
+          return res.status(500).json({ error: '회원가입 실패' });
+        }
+        res.status(201).json({ message: '회원가입 성공', user_id: result.insertId });
+      });
+    });
+  } catch (err) {
+    console.error('예상치 못한 오류', err);
+    res.status(500).json({ error: '서버 오류' });
+  }
 });
