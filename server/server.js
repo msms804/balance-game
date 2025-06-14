@@ -12,6 +12,12 @@ app.use(cors());
 // JSON 파싱 가능하도록 설정
 app.use(express.json());
 
+// 전달된 인자가 문자열인지, 문자열이라면 앞뒤 공백 제거 후 그 길이가 1 이상인지 체크하는 함수
+// 즉 null, number 타입, 빈 문자열 '', 공백만 있는 문자열 '  ' 등은 false를 반환!
+function isValidString(str) {
+  return typeof str === 'string' && str.trim().length > 0;
+}
+
 // POST /api/post : title1 하나 받아서 DB에 insert!
 app.post('/api/post', (req, res) => {
   const { title1, title2 } = req.body;
@@ -46,7 +52,7 @@ app.post('/api/signup', async (req, res) => {
   const { login_id, password, username } = req.body;
 
   // 요청 바디가 모두 들어왔는지 체크
-  if (!login_id || !password || !username) {
+  if (!isValidString(login_id) || !isValidString.trim(password) || !isValidString.trim(username)) {
     return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
   }
 
