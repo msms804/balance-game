@@ -18,12 +18,12 @@ function isValidString(str) {
   return typeof str === 'string' && str.trim().length > 0;
 }
 
-// POST /api/post : title1 하나 받아서 DB에 insert!
+// POST /api/post : title1 2개 받아서 DB에 insert!
 app.post('/api/post', (req, res) => {
-  const { title1, title2 } = req.body;
+  const { title1, title2 } = req.body;  //req.body 객체에서 title1, title2 속성 추출 -> 객체 디스트럭처링 문법
 
-  if (!title1 || !title2) {
-    return res.status(400).json({ error: 'title1 and title2 are required' });
+  if (!isValidString(title1) || !isValidString(title2)) {
+    return res.status(400).json({ error: 'title1과 title2를 모두 입력해주세요.' });
   }
 
   const sql = 'INSERT INTO BalanceGamePost (title1, title2, user_id) VALUES (?, ?, ?)';
@@ -67,7 +67,7 @@ app.post('/api/signup', async (req, res) => {
 
       if (results.length > 0) {
         // login_id 중복
-        return res.status(409).json({ error: '이미 존재하는 로그인 ID입니다.' });
+        return res.status(409).json({ error: '이미 존재하는 ID입니다.' });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
