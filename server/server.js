@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const db = require('./db');
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'hello_our_agv_age_is_30.5yrs_old'
 
 const app = express();
 const PORT = 5050;
@@ -18,7 +20,7 @@ function isValidString(str) {
   return typeof str === 'string' && str.trim().length > 0;
 }
 
-// POST /api/post : title1 2개 받아서 DB에 insert!
+// POST /api/post : title1 2개 받아서 BalanceGamePost 테이블에 삽입
 app.post('/api/post', (req, res) => {
   const { title1, title2 } = req.body;  //req.body 객체에서 title1, title2 속성 추출 -> 객체 디스트럭처링 문법
 
@@ -38,21 +40,12 @@ app.post('/api/post', (req, res) => {
 });
 
 
-// 간단한 API 테스트용
-app.get('/api/hello', (req, res) => {
-    res.json({ message: 'Hello from Express server!' });
-  });
-  
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
-
 // POST api/signup, 회원가입
 app.post('/api/signup', async (req, res) => {
   const { login_id, password, username } = req.body;
 
   // 요청 바디가 모두 들어왔는지 체크
-  if (!isValidString(login_id) || !isValidString.trim(password) || !isValidString.trim(username)) {
+  if (!isValidString(login_id) || !isValidString(password) || !isValidString(username)) {
     return res.status(400).json({ error: '모든 필드를 입력해주세요.' });
   }
 
@@ -85,4 +78,61 @@ app.post('/api/signup', async (req, res) => {
     console.error('예상치 못한 오류', err);
     res.status(500).json({ error: '서버 오류' });
   }
+});
+
+// POST /api/login, 로그인
+app.post('/api/login', (req, res) => {
+  const { login_id, password } = req.body;
+
+  if (!isValidString(login_id) || !isValidString(password)) {
+    return res.status(400).json({ error: 'ID와 비밀번호를 입력해주세요.' });
+  }
+
+  const findUserSql = 'SELECT * FROM Users WHERE login_id = ?';
+  db.query(findUserSql, [login_id], async (err, results) => {
+    if (err) {
+      console.error('DB 조회 오류:', err);
+      return res.status(500).json({ error: '서버 오류' });
+    }
+    if (results.length === 0) {
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 일치하지 않습니다.' });
+    }
+    // findUserSql에서 가져온 쿼리 결과 배열의 첫번째 요소를 user에 저장
+    const user = results [0];
+
+
+    // 비밀번호 검증
+    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    if (!isPasswordMatch) {
+      return res.status(401).json({ error: '아이디 또는 비밀번호가 일치하지 않습니다.' });
+    }
+
+    // JWT 토큰 발급
+    const payload = {
+      user_id: user.user_id,
+      login_id: user.login_id,
+      username: user.username
+    };
+
+    // jwt 토큰 생성, 토큰 만료 시간은 일단 1시간으로 설정💕💕💕추후 로그아웃 시 만료로 리팩터링💕💕💕
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(200).json({ message: '로그인 성공', token });
+  });
+});
+
+
+
+
+
+
+
+// --------------------------------------------------------------------
+// 간단한 API 테스트용
+app.get('/api/hello', (req, res) => {
+    res.json({ message: 'Hello from Express server!' });
+  });
+  
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
 });
