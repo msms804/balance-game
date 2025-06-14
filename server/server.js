@@ -8,19 +8,39 @@ const JWT_SECRET = 'hello_our_agv_age_is_30.5yrs_old'
 const app = express();
 const PORT = 5050;
 
-//CORS 설정
-app.use(cors());
-
-// JSON 파싱 가능하도록 설정
-app.use(express.json());
-
 // 전달된 인자가 문자열인지, 문자열이라면 앞뒤 공백 제거 후 그 길이가 1 이상인지 체크하는 함수
 // 즉 null, number 타입, 빈 문자열 '', 공백만 있는 문자열 '  ' 등은 false를 반환!
 function isValidString(str) {
   return typeof str === 'string' && str.trim().length > 0;
 }
 
-// POST /api/post : title1 2개 받아서 BalanceGamePost 테이블에 삽입
+// JWT 토큰 검증 미들웨어
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization; // 요청 헤더에서 Auth 값 가져오기
+
+  if (!authHeader) {
+    return res.status(401).json({ error: '인증 토큰이 없습니다.' });  // Auth 없으면... 에러!
+  }
+
+  const token = authHeader.split(' ')[1]; // Bearer <token> 형식에서 토큰만 파싱
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);  // 토큰 유효성 검증(서명, 만료 시간 확인 등에 포함됨)
+    req.user = decoded; // 유효한 토큰이면 사용자 정보를 req.user에 저장
+
+    next();
+  } catch (err) {
+    return res.status(401).json({ error: '유효하지 않은 토큰입니다.' });  // 에러 처리
+  }
+}
+
+//CORS 설정
+app.use(cors());
+
+// JSON 파싱 가능하도록 설정
+app.use(express.json());
+
+// POST /api/post, 게시글 등록: title1, title2 받아서 BalanceGamePost 테이블에 삽입
 app.post('/api/post', (req, res) => {
   const { title1, title2 } = req.body;  //req.body 객체에서 title1, title2 속성 추출 -> 객체 디스트럭처링 문법
 
