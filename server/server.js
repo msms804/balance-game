@@ -41,16 +41,19 @@ app.use(cors());
 app.use(express.json());
 
 // POST /api/post, 게시글 등록: title1, title2 받아서 BalanceGamePost 테이블에 삽입
-app.post('/api/post', (req, res) => {
+app.post('/api/post', verifyToken, (req, res) => {
   const { title1, title2 } = req.body;  //req.body 객체에서 title1, title2 속성 추출 -> 객체 디스트럭처링 문법
 
   if (!isValidString(title1) || !isValidString(title2)) {
     return res.status(400).json({ error: 'title1과 title2를 모두 입력해주세요.' });
   }
+  
+  //user_id를 JWT 토큰에서 추출한 값으로 대체함
+  const userIdFromToken = req.user.user_id;
 
   const sql = 'INSERT INTO BalanceGamePost (title1, title2, user_id) VALUES (?, ?, ?)';
 
-  db.query(sql, [title1, title2, 1], (err,result) => {
+  db.query(sql, [title1, title2, userIdFromToken], (err,result) => {
     if (err) {
       console.error('Insert 실패:', err);
       return res.status(500).json({ error: 'DB 오류' });
