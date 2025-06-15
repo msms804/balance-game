@@ -2,37 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const db = require('./db');
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'hello_our_agv_age_is_30.5yrs_old'
+const { isValidString, checkPostExists } = require('./utils');
+const { verifyToken } = require('./middleware/auth');
 
 const app = express();
 const PORT = 5050;
 
-// 전달된 인자가 문자열인지, 문자열이라면 앞뒤 공백 제거 후 그 길이가 1 이상인지 체크하는 함수
-// 즉 null, number 타입, 빈 문자열 '', 공백만 있는 문자열 '  ' 등은 false를 반환!
-function isValidString(str) {
-  return typeof str === 'string' && str.trim().length > 0;
-}
-
-// JWT 토큰 검증 미들웨어
-function verifyToken(req, res, next) {
-  const authHeader = req.headers.authorization; // 요청 헤더에서 Auth 값 가져오기
-
-  if (!authHeader) {
-    return res.status(401).json({ error: '인증 토큰이 없습니다.' });  // Auth 없으면... 에러!
-  }
-
-  const token = authHeader.split(' ')[1]; // Bearer <token> 형식에서 토큰만 파싱
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);  // 토큰 유효성 검증(서명, 만료 시간 확인 등에 포함됨)
-    req.user = decoded; // 유효한 토큰이면 사용자 정보를 req.user에 저장
-
-    next();
-  } catch (err) {
-    return res.status(401).json({ error: '유효하지 않은 토큰입니다.' });  // 에러 처리
-  }
-}
 
 //CORS 설정
 app.use(cors());
@@ -40,7 +15,7 @@ app.use(cors());
 // JSON 파싱 가능하도록 설정
 app.use(express.json());
 
-// POST /api/post, 게시글 등록: title1, title2 받아서 BalanceGamePost 테이블에 삽입
+// 🌹인증필요🌹 POST /api/post, 게시글 등록: title1, title2 받아서 BalanceGamePost 테이블에 삽입 
 app.post('/api/post', verifyToken, (req, res) => {
   const { title1, title2 } = req.body;  //req.body 객체에서 title1, title2 속성 추출 -> 객체 디스트럭처링 문법
 
@@ -51,9 +26,9 @@ app.post('/api/post', verifyToken, (req, res) => {
   //user_id를 JWT 토큰에서 추출한 값으로 대체함
   const userIdFromToken = req.user.user_id;
 
-  const sql = 'INSERT INTO BalanceGamePost (title1, title2, user_id) VALUES (?, ?, ?)';
+  const insertPostSql = 'INSERT INTO BalanceGamePost (title1, title2, user_id) VALUES (?, ?, ?)';
 
-  db.query(sql, [title1, title2, userIdFromToken], (err,result) => {
+  db.query(insertPostSql, [title1, title2, userIdFromToken], (err,result) => {
     if (err) {
       console.error('Insert 실패:', err);
       return res.status(500).json({ error: 'DB 오류' });
@@ -74,8 +49,8 @@ app.post('/api/signup', async (req, res) => {
 
   // 이미 존재하는 login_id인지 중복 확인
   try {
-    const checkSql = 'SELECT * FROM Users WHERE login_id = ?';
-    db.query(checkSql, [login_id], async (err, results) => {
+    const checkUserSql = 'SELECT * FROM Users WHERE login_id = ?';
+    db.query(checkUserSql, [login_id], async (err, results) => {
       if (err) {
         console.error('DB 오류:', err);
         return res.status(500).json({error: 'DB 오류'});
@@ -88,8 +63,8 @@ app.post('/api/signup', async (req, res) => {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const insertSql = 'INSERT INTO Users (login_id, password, username) VALUES (?, ?, ?)';
-      db.query(insertSql, [login_id, hashedPassword, username], (err, result) => {
+      const insertUserDataSql = 'INSERT INTO Users (login_id, password, username) VALUES (?, ?, ?)';
+      db.query(insertUserDataSql, [login_id, hashedPassword, username], (err, result) => {
         if (err) {
           console.error('회원가입 실패:', err);
           return res.status(500).json({ error: '회원가입 실패' });
@@ -137,13 +112,41 @@ app.post('/api/login', (req, res) => {
       username: user.username
     };
 
-    // jwt 토큰 생성, 토큰 만료 시간은 일단 1시간으로 설정💕💕💕추후 로그아웃 시 만료로 리팩터링💕💕💕
+    // jwt 토큰 생성, 토큰 만료 시간은 일단 1시간으로 설정 🌹🌹🌹추후 로그아웃 시 만료로 리팩터링🌹🌹🌹
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
 
     res.status(200).json({ message: '로그인 성공', token });
   });
 });
 
+// 🌹인증필요🌹 POST /api/comment, 댓글 작성
+app.post('/api/comment', verifyToken, async (req, res) => {
+  const { post_id, comment } = req.body;
+  const userIdFromToken = req.user.user_id;
+
+  // 클라이언트가 post_id 값을 보냈는지 확인, commet에 장난질은 치지 않았는지 유효성 검사
+  if (!post_id || !isValidString(comment)) {
+    return res.status(400).json({ error: '게시글이 존재하지 않거나 comment를 입력하지 않았습니다.' });
+  }
+  try {
+    const exists = await checkPostExists(post_id);
+    if (!exists) {
+      return res.status(404).json({ error: '해당 게시글이 존재하지 않습니다.' });
+    }
+    const insertCommentSql = 'INSERT INTO Comment (post_id, user_id, comment VAULES (?, ?, ?)';
+
+    db.query(insertCommentSql, [post_id, userIdFromToken, comment], (err, result) => {
+      if (err) {
+        console.error('댓글 작성 실패:', err);
+        return res.status(500).json({ error: '댓글 작성 실패(DB 오류)' });
+      }
+      res.status(201).json({ message: '댓글 등록 성공', comment_id: result.insertId });
+    });
+  } catch (err) {
+    console.error('댓글 작성 중 서버 오류:', err);
+    res.status(500).json({ error: '서버 내부 오류 발생' });
+  }
+});
 
 
 
@@ -155,6 +158,15 @@ app.post('/api/login', (req, res) => {
 app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from Express server!' });
   });
+
+// // JSON 문법 에러 핸들러
+// app.use((err, req, res, next) => {
+//   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+//     console.error('JSON 문법 오류:', err.message);
+//     return res.status(400).json({ error: '잘못된 JSON 형식입니다.' });
+//   }
+//   next();
+// });
   
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
