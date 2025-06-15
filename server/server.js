@@ -2,12 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
 const db = require('./db');
+const jwt = require('jsonwebtoken');
 const { isValidString, checkPostExists } = require('./utils');
 const { verifyToken } = require('./middleware/auth');
+const JWT_SECRET = 'hello_our_agv_age_is_30.5yrs_old'
 
 const app = express();
 const PORT = 5050;
-
 
 //CORS 설정
 app.use(cors());
@@ -133,7 +134,7 @@ app.post('/api/comment', verifyToken, async (req, res) => {
     if (!exists) {
       return res.status(404).json({ error: '해당 게시글이 존재하지 않습니다.' });
     }
-    const insertCommentSql = 'INSERT INTO Comment (post_id, user_id, comment VAULES (?, ?, ?)';
+    const insertCommentSql = 'INSERT INTO Comment (post_id, user_id, comment) VALUES (?, ?, ?)';
 
     db.query(insertCommentSql, [post_id, userIdFromToken, comment], (err, result) => {
       if (err) {
@@ -159,14 +160,14 @@ app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from Express server!' });
   });
 
-// // JSON 문법 에러 핸들러
-// app.use((err, req, res, next) => {
-//   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
-//     console.error('JSON 문법 오류:', err.message);
-//     return res.status(400).json({ error: '잘못된 JSON 형식입니다.' });
-//   }
-//   next();
-// });
+// JSON 문법 에러 핸들러
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('JSON 문법 오류:', err.message);
+    return res.status(400).json({ error: '잘못된 JSON 형식입니다.' });
+  }
+  next();
+});
   
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
