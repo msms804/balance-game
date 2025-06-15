@@ -127,7 +127,7 @@ app.post('/api/comment', verifyToken, async (req, res) => {
 
   // 클라이언트가 post_id 값을 보냈는지 확인, commet에 장난질은 치지 않았는지 유효성 검사
   if (!post_id || !isValidString(comment)) {
-    return res.status(400).json({ error: '게시글이 존재하지 않거나 comment를 입력하지 않았습니다.' });
+    return res.status(400).json({ error: '클라이언트측에서 post_id가 존재하지 않거나 comment를 입력하지 않았습니다.' });
   }
   try {
     const exists = await checkPostExists(post_id);
@@ -149,7 +149,48 @@ app.post('/api/comment', verifyToken, async (req, res) => {
   }
 });
 
+// 🌹인증필요🌹 POST /api/vote, 투표 등록
+app.post('/api/vote', verifyToken, async (req, res) => {
+  const { post_id, choice } = req.body;
+  const userIdFromToken = req.user.user_id;
 
+  // choice는 반드시 msg1 or msg2 중 하나여야 함
+  if (!post_id || (choice !== 'msg1' && choice !== 'msg2')) {
+    return res.status(400).json({ error: '클라이언트측에서 post_id가 존재하지 않거나 msg1 또는 msg2를 선택하지 않았습니다.' });
+  }
+
+  try {
+    const exists = await checkPostExists(post_id);
+    if (!exists) {
+      return res.status(404).json({ error: '해당 게시글이 존재하지 않습니다.' });
+    }
+
+    // 해당 post_id에 대해 사용자가 투표했는지 체크
+    const checkDuplicateVoteSql = 'SELECT * FROM Vote WHERE post_id = ? AND user_id = ?';
+    db.query(checkDuplicateVoteSql, [post_id, userIdFromToken], (err, results) => {
+      if (err) {
+        console.error('중복 투표 확인 실패:', err);
+        return res.status(500).json({ error: 'DB 오류로 투표 확인에 실패했습니다.' });
+      }
+      if (results.length > 0) {
+        return res.status(409).json({ error: '이미 이 게시글에 투표하셨습니다.' });
+      }
+
+      // 투표 삽입 SQL
+      const insertVoteSql = 'INSERT INTO Vote (post_id, user_id, choice) VALUES (?, ?, ?)';
+      db.query(insertVoteSql, [post_id, userIdFromToken, choice], (err, result) => {
+        if (err) {
+          console.error('투표 등록 실패:', err);
+          return res.status(500).json({ error: '투표 등록 실패(DB 오류)' });
+        }
+        res.status(201).json({ success: true });
+      });
+    });
+  } catch (err) {
+    console.error('투표 처리 중 서버 오류:', err);
+    res.status(500).json({ error: '서버 내부 오류 발생' });
+  }
+});
 
 
 
