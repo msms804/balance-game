@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const { isValidString, checkPostExists } = require('./utils');
 const { verifyToken } = require('./middleware/auth');
 const JWT_SECRET = process.env.JWT_SECRET;
+const { generateRandomNickname } = require('./utils');
 
 const app = express();
 const PORT = process.env.PORT;
@@ -64,9 +65,10 @@ app.post('/api/signup', async (req, res) => {
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
+      const randomNickname = generateRandomNickname();
 
-      const insertUserDataSql = 'INSERT INTO Users (login_id, password) VALUES (?, ?)';
-      db.query(insertUserDataSql, [login_id, hashedPassword], (err, result) => {
+      const insertUserDataSql = 'INSERT INTO Users (login_id, password, username) VALUES (?, ?, ?)';
+      db.query(insertUserDataSql, [login_id, hashedPassword, randomNickname], (err, result) => {
         if (err) {
           console.error('회원가입 실패:', err);
           return res.status(500).json({ error: '회원가입 실패' });
