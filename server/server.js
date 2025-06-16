@@ -10,7 +10,7 @@ const JWT_SECRET = 'hello_our_agv_age_is_30.5yrs_old'
 const app = express();
 const PORT = 5050;
 
-//CORS 설정
+//CORS 설정!
 app.use(cors());
 
 // JSON 파싱 가능하도록 설정
@@ -221,7 +221,7 @@ app.get('/api/posts', (req, res) => {
 
 
 
-// --------------------------------------------------------------------
+// ---------------------------------------------------------------------
 // 간단한 API 테스트용
 app.get('/api/hello', (req, res) => {
     res.json({ message: 'Hello from Express server!' });
