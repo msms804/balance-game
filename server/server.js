@@ -339,6 +339,64 @@ app.get('/api/vote/:postId', (req, res) => {
   });
 });
 
+// GET api/comment/:commentId, 댓글 조회
+// [ { commentId, userId, comment, time } ]
+app.get('/api/comments/:postId', (req, res) => {
+  const postId = req.params.postId;
+
+  if (isNaN(postId)) {
+    return res.status(400).json({ error: '유효하지 않은 postId 형식' });
+  }
+
+  const getCommentsSql = `
+    SELECT
+      c.comment_id AS commentId,
+      c.user_id AS userId,
+      c.comment,
+      c.created_at AS time
+      FROM Comment c
+      JOIN Users u ON c.user_id = u.user_id
+      WHERE c.post_id = ?
+      ORDER BY c.created_at ASC
+  `;
+
+  db.query(getCommentsSql, [postId], (err, results) => {
+    if (err) {
+      console.err('댓글 조회 실패:', err);
+      return res.status(500).json({ error: 'post 존재 여부 확인 실패(DB 오류)' });
+    }
+    res.status(200).json({ posts: results });
+  });
+});
+
+// DELETE /api/post/:postId, 게시글 삭제
+app.delete('/api/post/:postId', async (req, res) => {
+  const postId = req.params.postId;
+
+  if (!postId || isNaN(postId)) {
+    return res.status(400).json({ error: 'postId가 존재하지 않거나 유효하지 않습니다.' });
+  }
+
+  try {
+    const exists = await checkPostExists(postId);
+    if (!exists) {
+      return res.status(404).json({ error: '해당 게시글이 존재하지 않습니다.' });
+    }
+
+    const deletePostSql = 'DELETE FROM BalanceGamePost WHERE post_id = ?';
+    db.query(deletePostSql, [postId], (err, result) => {
+      if (err) {
+        console.error('게시글 삭제 실패:', err);
+        return res.status(500).json({ error: '게시글 삭제 실패(DB 오류)' });
+      }
+      res.status(200).json({ success: true });
+    });
+  } catch (err) {
+    console.error('게시글 삭제 중 서버 오류', err);
+    res.status(500).json({ error: '서버 내부 오류 발생' });
+  }
+});
+
 
 
 // ---------------------------------------------------------------------
