@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcrypt');
@@ -5,10 +6,10 @@ const db = require('./db');
 const jwt = require('jsonwebtoken');
 const { isValidString, checkPostExists } = require('./utils');
 const { verifyToken } = require('./middleware/auth');
-const JWT_SECRET = 'hello_our_agv_age_is_30.5yrs_old'
+const JWT_SECRET = process.env.JWT_SECRET;
 
 const app = express();
-const PORT = 5050;
+const PORT = process.env.PORT;
 
 //CORS 설정!
 app.use(cors());
