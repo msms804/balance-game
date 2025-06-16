@@ -217,6 +217,7 @@ app.get('/api/posts', (req, res) => {
     });
 });
 
+
 // GET /api/post/:postId, 게시글 상세 조회
 // response -> { postId, maintitle, msg1, msg2, username, time, votes: { msg1, msg2 } }
 app.get('/api/posts/:postId', (req, res) => {
@@ -291,7 +292,52 @@ app.get('/api/posts/:postId', (req, res) => {
   });
 });
 
+// GET /api/vote/:postId, 특정 게시글의 투표 결과 조회
+// response -> { postId, msg1Count, msg2Count }
+app.get('/api/vote/:postId', (req, res) => {
+  const postId = req.params.postId;
 
+  if (isNaN(postId)) {
+    return res.status(400).json({ error: '유효하지 않은 postId 형식' });
+  }
+
+  checkPostExists(postId).then(exists => {
+    if (!exists) {
+      return res.status(404).json({ error: '해당 게시글이 존재하지 않습니다.' });
+    }
+
+    const countVoteSql = `
+      SELECT
+      SUM(CASE WHEN choice = 'msg1' THEN 1 ELSE 0 END) AS msg1Count,
+      SUM(CASE WHEN choice = 'msg2' THEN 1 ELSE 0 END) AS msg2Count
+    FROM Vote
+    WHERE post_id = ?
+  `;
+
+    db.query(countVoteSql, [postId], (err, result) => {
+      if (err) {
+        console.error('투표 결과 조회 실패:', err);
+        return res.status(500).json({ error: '투표 결과 조회 실패(DB 오류)' });
+      }
+
+      let row;
+      if (result.length > 0) {
+        row = result[0];
+      }
+      else {
+        row = { msg1Count: 0, msg2Count: 0 };
+      }
+      res.status(200).json({
+        postId: Number(postId),
+        msg1Count: row.msg1Count,
+        msg2Count: row.msg2Count
+      });
+    });
+  }).catch(err => {
+    console.error('post 존재 여부 확인 실패', err);
+    return res.status(500).json({ error: 'post 존재 여부 확인 실패(DB 오류)' });
+  });
+});
 
 
 
