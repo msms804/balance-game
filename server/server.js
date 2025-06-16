@@ -398,6 +398,30 @@ app.delete('/api/post/:postId', async (req, res) => {
 });
 
 
+// DELETE /api/comment//:commentId, 댓글 삭제
+app.delete('/api/comment/:commentId', (req, res) => {
+  const commentId = req.params.commentId;
+
+  if (!commentId || isNaN(commentId)) {
+    return res.status(400).json({ error: 'commentId가 존재하지 않거나 유효하지 않습니다.' });
+  }
+
+  const deleteCommentSql = 'DELETE FROM Comment WHERE comment_id = ?';
+
+  db.query(deleteCommentSql, [commentId], (err, result) => {
+    if (err) {
+      console.error('댓글 삭제 실패:', err);
+      return res.status(500).json({ error: '댓글 삭제 실패(DB 오류)' });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: '해당 댓글이 존재하지 않습니다.' });
+    }
+    res.status(200).json({ success : true });
+  });
+});
+
+
 
 // ---------------------------------------------------------------------
 // 간단한 API 테스트용
