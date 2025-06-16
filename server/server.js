@@ -192,6 +192,32 @@ app.post('/api/vote', verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/posts, 전체 게시글 조회
+app.get('/api/posts', (req, res) => {
+  // 참고로 title1은... msg1으로 바뀔 수도 있음
+  const getAllPostsSql = `
+    SELECT
+      p.post_id AS postId,
+      p.title1 AS msg1,
+      p.title2 AS msg2,
+      p.created_at AS time,
+      u.username
+    FROM BalanceGamePost p
+    JOIN Users u ON p.user_id = u.user_id
+    ORDER BY p.created_at DESC
+  `;
+  db.query(getAllPostsSql, (err, results) => {
+    if (err) {
+      console.error('게시글 조회 실패:', err);
+      return res.status(500).json({ error: '게시글 조회 실패(DB 오류)' });
+      }
+      res.status(200).json({ success: true, posts: results });
+    });
+});
+
+
+
+
 
 
 
