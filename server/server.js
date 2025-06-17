@@ -222,7 +222,7 @@ app.get('/api/posts', (req, res) => {
 
 // GET /api/post/:postId, 게시글 상세 조회
 // response -> { postId, maintitle, msg1, msg2, username, time, votes: { msg1, msg2 } }
-app.get('/api/posts/:postId', (req, res) => {
+app.get('/api/post/:postId', (req, res) => {
   const postId = req.params.postId;
 
   // postId가 숫자가 아니면 에러 처리
@@ -354,6 +354,7 @@ app.get('/api/comments/:postId', (req, res) => {
     SELECT
       c.comment_id AS commentId,
       c.user_id AS userId,
+      u.username AS userName,
       c.comment,
       c.created_at AS time
       FROM Comment c
@@ -400,7 +401,7 @@ app.delete('/api/post/:postId', async (req, res) => {
 });
 
 
-// DELETE /api/comment//:commentId, 댓글 삭제
+// DELETE /api/comment/:commentId, 댓글 삭제
 app.delete('/api/comment/:commentId', (req, res) => {
   const commentId = req.params.commentId;
 
