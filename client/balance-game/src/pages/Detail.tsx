@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import axios from 'axios';
-import { useAuth } from '../\bhooks/\buseAuth';
-import { useToken } from '../\bhooks/useToken';
+import { useAuth } from '../hooks/useAuth';
+import { useToken } from '../hooks/useToken';
 
 interface PostDetail {
   postId: number;
