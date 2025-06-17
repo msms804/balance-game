@@ -55,8 +55,9 @@ export const Detail = () => {
 
 
   const getDetailPage = async () => {
+    console.log("??", postId)
     const res = await axios.get(`http://localhost:5050/api/posts/${postId}`)
-    console.log(res.data);
+    console.log("..?", res.data);
     setPost(res.data)
   }
   
@@ -114,7 +115,8 @@ export const Detail = () => {
   const checkVoted = async () => {
     try {
       const res = await axios.get(`http://localhost:5050/api/vote/${postId}/${user?.user_id}`);
-      console.log(res.data);
+      
+      console.log("??", res.data);
       if (res.data.voted) {
         setHasVoted(true);
         setVoteResult(res.data.votes);
@@ -187,10 +189,10 @@ export const Detail = () => {
       </div>
     </div>
 
-    {/* 하단 제작자 표시 */}
+    {/* 하단 제작자 표시
     <div className="text-sm text-blue-800 text-right">
       언밸런스
-    </div>
+    </div> */}
   </div>
     <div className="flex-1 p-8 flex flex-col w-[600px] items-center">
              {/* 댓글 입력 */}
