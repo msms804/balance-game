@@ -10,7 +10,8 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const { generateRandomNickname } = require('./utils');
 
 const app = express();
-const PORT = process.env.PORT;
+// const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5050;
 
 //CORS 설정!
 app.use(cors());
