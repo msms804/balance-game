@@ -1,41 +1,217 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import axios from 'axios';
+import { useAuth } from '../\bhooks/\buseAuth';
+import { useToken } from '../\bhooks/useToken';
+
+interface PostDetail {
+  postId: number;
+  maintitle: string;
+  msg1: string;
+  msg2: string;
+  username: string;
+  time: string;  // ISO date string
+  votes: {
+    msg1: number;
+    msg2: number;
+  }
+}
+interface CommentType {
+  commentId: number;
+  userId: number;
+  userName: string;
+  comment: string;
+  time: string;
+}
 
 export const Detail = () => {
-  const {id} = useParams();
-  return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
+  const {postId} = useParams();
+  const [post, setPost] = useState<PostDetail>();
+  const [selected, setSelected] = useState<'msg1' | 'msg2' | null>(null);
+  const user = useAuth();
+  const token = useToken();
+  const [comment, setComment] = useState<string>('');
+  const [commentList, setCommentList] = useState<CommentType[]>([]);
+  
+  const [hasVoted, setHasVoted] = useState(false);
+  const [voteResult, setVoteResult] = useState<{msg1: number; msg2: number}>({msg1: 0, msg2: 0});
 
-    {/* 본문 */}
-    <div className="flex-1 p-8 flex flex-col items-center">
-      {/* VS 박스 */}
-      <div className="flex justify-center items-center gap-8 mb-8">
-        <div className="bg-gray-300 w-48 h-48 rounded"></div>
-        <div className="text-3xl font-bold">VS</div>
-        <div className="bg-gray-300 w-48 h-48 rounded"></div>
+  /* 상세페이지 가져오는 로직 */
+  useEffect(() => {
+    if(user){
+      getDetailPage();
+      getCommentList();
+      checkVoted();  
+    }
+  } , [user])
+  
+  
+  /* 댓글 리스트 가져오는 로직 */
+    const getCommentList = async () => {
+      const res = await axios.get(`http://localhost:5050/api/comments/${postId}`)
+      console.log(res.data);
+      setCommentList(res.data.posts);
+    }
+
+
+  const getDetailPage = async () => {
+    const res = await axios.get(`http://localhost:5050/api/posts/${postId}`)
+    console.log(res.data);
+    setPost(res.data)
+  }
+  
+
+    /* 댓글 등록 로직 */
+   const handleCommentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+          setComment(e.target.value);
+   }
+   const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    console.log("댓글 등록 : ", post?.postId, comment);
+    
+    try {
+      await axios.post('http://localhost:5050/api/comment', {
+        post_id: post?.postId,
+        comment: comment,
+    }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      })
+      setComment('');
+      await getCommentList();
+    } catch (error) {
+      console.log("댓글 등록 실패")
+    }
+    
+  }
+  /* 투표 기능 */
+  const handleVote = async (choice: 'msg1' | 'msg2') => {
+    setSelected(choice);
+    console.log(post?.postId, choice);
+    try {
+      await axios.post('http://localhost:5050/api/vote', {
+        post_id: post?.postId,
+        choice: choice, //여기서 selected를 넣으면 늦게 렌더링됨(늦게 반영)
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      })
+      await checkVoted();
+    } catch (error) {
+      console.log("투표 실패..", error);
+    }
+  }
+
+  /* 투표 결과 조회 */
+  // const getVotes = async () => {
+  //   const res = await axios.get(`http://localhost:5050/api/vote/${postId}`)
+  //   console.log(res.data);
+  // }
+
+  const checkVoted = async () => {
+    try {
+      const res = await axios.get(`http://localhost:5050/api/vote/${postId}/${user?.user_id}`);
+      console.log(res.data);
+      if (res.data.voted) {
+        setHasVoted(true);
+        setVoteResult(res.data.votes);
+        setSelected(res.data.choice); // 내가 고른 선택지
+      }
+      console.log("투표함? ", res.data.votes);
+    } catch (err) {
+      console.log("투표여부 확인 실패");
+    }
+  }
+
+
+  if(!post) return <div>로딩중...</div>;
+
+  return (
+    <div className="min-h-screen bg-gray-100 items-center flex flex-col">
+      <div className="mt-4 bg-green-400 rounded-3xl w-[300px] h-[400px] flex flex-col justify-between p-6 shadow-lg">
+    
+    {/* 메인 타이틀 */}
+    <div className="text-4xl font-extrabold text-black mb-4">
+      {post.maintitle}
+    </div>
+
+    {/* 선택지 */}
+    <div className="flex flex-col items-center justify-center gap-4 flex-1">
+      <div
+        className={`text-2xl font-semibold
+          ${hasVoted ? 'pointer-events-none opacity-70' : ''}
+          `}
+        onClick={() => handleVote("msg1")}
+      >
+        {post.msg1}
+        {/* hasVoted일 때 투표수 표시 */}
+        {hasVoted && (
+          <div className='text-xs text-gray-600 mt-1'>
+            {post.votes.msg1}표
+          </div>
+        )}
       </div>
-     {/* 댓글 입력 */}
-     <div className="flex w-full max-w-2xl mb-8">
+
+      <div className="text-xl font-bold">VS</div>
+
+      <div
+        className={`text-2xl font-semibold 
+          ${hasVoted ? 'pointer-events-none opacity-70' : ''}
+          `}
+        
+        onClick={() => handleVote("msg2")}
+      >
+        {post.msg2}
+        {/* hasVoted일 때 투표수 표시 */}
+        {hasVoted && (
+          <div className='text-xs text-gray-600 mt-1'>
+            {post.votes.msg2}표
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* 하단 제작자 표시 */}
+    <div className="text-sm text-blue-800 text-right">
+      언밸런스
+    </div>
+  </div>
+    <div className="flex-1 p-8 flex flex-col w-[600px] items-center">
+             {/* 댓글 입력 */}
+             <div className="flex w-full max-w-2xl mb-8">
           <input
             type="text"
+            value={comment}
+            onChange={handleCommentChange}
             placeholder="댓글을 입력하세요"
             className="flex-1 border border-gray-400 p-3 rounded-l focus:outline-none focus:ring-2 focus:ring-blue-400"
           />
-          <button className="bg-blue-500 text-white px-6 rounded-r hover:bg-blue-600">
+          <button 
+          onClick={handleSubmit}
+          className="bg-blue-500 text-white px-6 rounded-r hover:bg-blue-600">
             등록
           </button>
         </div>
         {/* 댓글 리스트 */}
         <div className="w-full max-w-2xl space-y-4">
-          {[1, 2, 3].map((item) => (
-            <div key={item} className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-              <div className="flex-1 bg-gray-300 h-6 rounded"></div>
-            </div>
-          ))}
-        </div>
+  {commentList.map((item, idx) => (
+    <div key={idx} className="flex items-start space-x-4">
+      {/* 아바타 */}
+      <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-semibold text-sm">
+        
+      </div>
+
+      {/* 닉네임 + 댓글 */}
+      <div className="flex flex-col">
+        <div className="text-sm font-semibold text-gray-700 mb-1">{item.userName}</div>
+        <div className="text-sm text-gray-600">{item.comment}</div>
       </div>
     </div>
+  ))}
+</div>
 
-)
-}
+      </div>
+    </div>
+)}
