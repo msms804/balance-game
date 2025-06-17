@@ -99,6 +99,7 @@ export const Detail = () => {
         }
       })
       await checkVoted();
+      await getDetailPage(); // 이거까지 추가해야
     } catch (error) {
       console.log("투표 실패..", error);
     }
@@ -124,7 +125,20 @@ export const Detail = () => {
       console.log("투표여부 확인 실패");
     }
   }
-
+  /* 삭제 기능 구현 */
+  const handleDelete = async (commentId: number) => {
+    try {
+      await axios.delete(`http://localhost:5050/api/comment/${commentId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      });
+      console.log("삭제 완료");
+      await getCommentList();
+    } catch (error) {
+      console.log("댓글 삭제 실패", error);
+    }
+  }
 
   if(!post) return <div>로딩중...</div>;
 
@@ -204,10 +218,23 @@ export const Detail = () => {
       </div>
 
       {/* 닉네임 + 댓글 */}
+      <div className='flex flex-row items-center w-full justify-between'>
       <div className="flex flex-col">
         <div className="text-sm font-semibold text-gray-700 mb-1">{item.userName}</div>
         <div className="text-sm text-gray-600">{item.comment}</div>
       </div>
+        {/* 조건부 삭제 버튼 */}
+        {item.userId === user?.user_id && (
+          <div 
+          onClick={() => handleDelete(item.commentId)}
+          className="text-xs text-red-500 mt-1 hover:underline"
+          >
+            삭제
+          </div>
+        )}
+      
+      </div>
+      
     </div>
   ))}
 </div>

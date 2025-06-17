@@ -31,7 +31,7 @@ const InputFormPage = () => {
     console.log(title, msg1, msg2);
     try {
       await axios.post('http://localhost:5050/api/post', {
-        main_title: title,
+        maintitle: title,
         title1: msg1,
         title2: msg2,
       }, {
