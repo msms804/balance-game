@@ -424,6 +424,24 @@ app.delete('/api/comment/:commentId', (req, res) => {
   });
 });
 
+/////// 권민성 추가 /////////
+app.get('/api/vote/:postId/:userId', (req, res) => {
+  const postId = req.params.postId;
+  const userId = req.params.userId;
+  const checkVoteSql = 'SELECT choice FROM Vote WHERE post_id = ? AND user_id = ?';
+  db.query(checkVoteSql, [postId, userId], (err, results) => {
+    if (err) {
+      console.error('투표 확인 오류', err);
+      return res.status(500).json({ error: 'DB 오류' });
+    }
+    if (results.length > 0) {
+      return res.status(200).json({ voted: true, choice: results[0].choice });
+    } else {
+      return res.status(200).json({ voted: false });
+    }
+  });
+});
+
 
 
 // ---------------------------------------------------------------------
