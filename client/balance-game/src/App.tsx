@@ -6,7 +6,10 @@ import { Login } from './pages/Login'
 import { Detail } from './pages/Detail'
 import InputFormPage from './pages/InputFormPage'
 import NavBar from './components/NavBar'
+import { ProtectedRoute } from './components/ProtectedRoute'
+
 function App() {
+  //라우터 설정
   return (
     <>
     <BrowserRouter>
@@ -15,9 +18,14 @@ function App() {
       <Route path='/' element={<Mainpage />}/>
       <Route path='/login' element={<Login />}/>
       <Route path='/signup' element={<Signup />}/>
-      <Route path='/submit' element={<InputFormPage />}/>
-      <Route path='/posts/:postId' element={<Detail />}/>
+      <Route path='/submit' element={
+        <ProtectedRoute>
+          <InputFormPage />
+        </ProtectedRoute>
+      }/>
+      <Route path='/post/:postId' element={<Detail />}/>
     </Routes>
+
     </BrowserRouter>
      
     </>

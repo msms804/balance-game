@@ -1,7 +1,9 @@
 import axios from 'axios';
-import React, { useState, type ReactEventHandler } from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { queryClient } from '../query/queryClient';
 export const Login = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
   const [id, setID] = useState('');
   const [pw, setPW] = useState('');
   const [errmsg, setErrmsg] = useState<string | null>(null);
@@ -19,12 +21,13 @@ export const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:5050/api/login', {
+      const response = await axios.post(`${apiUrl}/api/login`, {
         login_id: id, 
         password: pw,
       })
       const token = response.data.token;
       localStorage.setItem('token', token);
+      await queryClient.invalidateQueries({queryKey : ['me']});
       navigate('/')
     } catch (error) {
       setID('')

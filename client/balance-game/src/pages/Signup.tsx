@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 
 export const Signup = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
   const [id, setId] = useState('');
   const [pw, setPw] = useState('');
   const [checkPW, setCheckPW] = useState('');
@@ -19,7 +20,7 @@ export const Signup = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:5050/api/signup', {
+      await axios.post(`${apiUrl}/api/signup`, {
           login_id : id, 
           password : pw,
           username: '테스트',

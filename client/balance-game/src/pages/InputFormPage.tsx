@@ -10,6 +10,7 @@ interface MyJwtPayload extends JwtPayload {
 }
 
 const InputFormPage = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
   const [title, setTitle] = useState('');
   const [msg1, setMsg1] = useState('');
   const [msg2, setMsg2] = useState('');
@@ -30,7 +31,7 @@ const InputFormPage = () => {
     e.preventDefault();
     console.log(title, msg1, msg2);
     try {
-      await axios.post('http://localhost:5050/api/post', {
+      await axios.post(`${apiUrl}/api/post`, {
         maintitle: title,
         title1: msg1,
         title2: msg2,

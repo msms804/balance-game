@@ -25,6 +25,7 @@ interface CommentType {
 }
 
 export const Detail = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
   const {postId} = useParams();
   const [post, setPost] = useState<PostDetail>();
   const [selected, setSelected] = useState<'msg1' | 'msg2' | null>(null);
@@ -38,9 +39,10 @@ export const Detail = () => {
 
   /* 상세페이지 가져오는 로직 */
   useEffect(() => {
+    getDetailPage();
+    getCommentList();
+
     if(user){
-      getDetailPage();
-      getCommentList();
       checkVoted();  
     }
   } , [user])
@@ -48,16 +50,13 @@ export const Detail = () => {
   
   /* 댓글 리스트 가져오는 로직 */
     const getCommentList = async () => {
-      const res = await axios.get(`http://localhost:5050/api/comments/${postId}`)
-      console.log(res.data);
+      const res = await axios.get(`${apiUrl}/api/comments/${postId}`)
       setCommentList(res.data.posts);
     }
 
 
   const getDetailPage = async () => {
-    console.log("??", postId)
-    const res = await axios.get(`http://localhost:5050/api/posts/${postId}`)
-    console.log("..?", res.data);
+    const res = await axios.get(`${apiUrl}/api/post/${postId}`)
     setPost(res.data)
   }
   
@@ -68,10 +67,9 @@ export const Detail = () => {
    }
    const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("댓글 등록 : ", post?.postId, comment);
     
     try {
-      await axios.post('http://localhost:5050/api/comment', {
+      await axios.post(`${apiUrl}/api/comment`, {
         post_id: post?.postId,
         comment: comment,
     }, {
@@ -89,9 +87,8 @@ export const Detail = () => {
   /* 투표 기능 */
   const handleVote = async (choice: 'msg1' | 'msg2') => {
     setSelected(choice);
-    console.log(post?.postId, choice);
     try {
-      await axios.post('http://localhost:5050/api/vote', {
+      await axios.post(`${apiUrl}/api/vote`, {
         post_id: post?.postId,
         choice: choice, //여기서 selected를 넣으면 늦게 렌더링됨(늦게 반영)
       }, {
@@ -106,23 +103,15 @@ export const Detail = () => {
     }
   }
 
-  /* 투표 결과 조회 */
-  // const getVotes = async () => {
-  //   const res = await axios.get(`http://localhost:5050/api/vote/${postId}`)
-  //   console.log(res.data);
-  // }
-
   const checkVoted = async () => {
     try {
-      const res = await axios.get(`http://localhost:5050/api/vote/${postId}/${user?.user_id}`);
+      const res = await axios.get(`${apiUrl}/api/vote/${postId}/${user?.user_id}`);
       
-      console.log("??", res.data);
       if (res.data.voted) {
         setHasVoted(true);
         setVoteResult(res.data.votes);
         setSelected(res.data.choice); // 내가 고른 선택지
       }
-      console.log("투표함? ", res.data.votes);
     } catch (err) {
       console.log("투표여부 확인 실패");
     }
@@ -130,7 +119,7 @@ export const Detail = () => {
   /* 삭제 기능 구현 */
   const handleDelete = async (commentId: number) => {
     try {
-      await axios.delete(`http://localhost:5050/api/comment/${commentId}`, {
+      await axios.delete(`${apiUrl}/api/comment/${commentId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         }
@@ -142,7 +131,7 @@ export const Detail = () => {
     }
   }
 
-  if(!post) return <div>로딩중...</div>;
+  if(!post) return <div>불러오는중...</div>;
 
   return (
     <div className="min-h-screen bg-gray-100 items-center flex flex-col">
@@ -150,22 +139,22 @@ export const Detail = () => {
     
     {/* 메인 타이틀 */}
     <div className="text-4xl font-extrabold text-black mb-4">
-      {post.maintitle}
+      {post?.maintitle}
     </div>
 
     {/* 선택지 */}
     <div className="flex flex-col items-center justify-center gap-4 flex-1">
       <div
-        className={`text-2xl font-semibold
+        className={`flex flex-col items-center text-2xl font-semibold
           ${hasVoted ? 'pointer-events-none opacity-70' : ''}
           `}
         onClick={() => handleVote("msg1")}
       >
-        {post.msg1}
+        {post?.msg1}
         {/* hasVoted일 때 투표수 표시 */}
         {hasVoted && (
-          <div className='text-xs text-gray-600 mt-1'>
-            {post.votes.msg1}표
+          <div className='text-sm text-red-600 mt-1'>
+            {post?.votes.msg1}표
           </div>
         )}
       </div>
@@ -173,17 +162,17 @@ export const Detail = () => {
       <div className="text-xl font-bold">VS</div>
 
       <div
-        className={`text-2xl font-semibold 
+        className={`flex flex-col items-center text-2xl font-semibold 
           ${hasVoted ? 'pointer-events-none opacity-70' : ''}
           `}
         
         onClick={() => handleVote("msg2")}
       >
-        {post.msg2}
+        {post?.msg2}
         {/* hasVoted일 때 투표수 표시 */}
         {hasVoted && (
-          <div className='text-xs text-gray-600 mt-1'>
-            {post.votes.msg2}표
+          <div className='text-sm text-red-600 mt-1'>
+            {post?.votes.msg2}표
           </div>
         )}
       </div>

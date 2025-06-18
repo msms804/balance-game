@@ -1,5 +1,5 @@
 import axios from 'axios'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 interface Post {
@@ -12,13 +12,16 @@ interface Post {
 }
 
 export const Mainpage = () => {
+  const apiUrl = import.meta.env.VITE_API_URL;
   const [posts, setPosts] = useState<Post[]>([]);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // 카드 리스트 가져오는 함수
   const getCards = async () => {
-    const res = await axios.get('http://localhost:5050/api/posts')
+    const res = await axios.get(`${apiUrl}/api/posts`)
     setPosts(res.data.posts);
     console.log(res.data.posts)
   }
-
   useEffect(() => {
     getCards();
   }, [])
@@ -29,18 +32,33 @@ export const Mainpage = () => {
   return (
     <div className="min-h-screen bg-gray-100">
     {/* 카드 리스트 */}
-    <div className="w-full max-w-5xl mx-auto p-4">
+    <div className="w-full max-w-5xl mx-auto p-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {posts && posts.map((post) => (
-            <Link to={`/posts/${post.postId}`} key={post.postId}>
-              <div className="flex flex-col text-sm bg-gray-300 h-40 rounded shadow-md flex items-center justify-center text-xl font-semibold text-gray-600">
-              {/* 카드 {idx + 1} */}
-              <div>{post.maintitle}</div>
-              <div>{post.msg1}</div>
-              <div>vs</div>
-              <div>{post.msg2}</div>
+            <Link 
+            to={`/post/${post.postId}`} 
+            onClick={(e) => {
+              if(isNavigating) e.preventDefault();
+              setIsNavigating(true);
+            }}
+            key={post.postId}>
+            <div className="flex flex-col justify-between bg-green-400 w-60 h-80 rounded shadow-md p-4 text-black">
+              
+              {/* 메인 타이틀 맨 위 */}
+              <div className="text-2xl font-extrabold mb-4">
+                {post.maintitle}
               </div>
-            </Link>          
+          
+              {/* 선택지 영역 - 가운데 정렬 */}
+              <div className="flex flex-col items-center justify-center gap-2 flex-1">
+                <div className="text-xl font-semibold">{post.msg1}</div>
+                <div className="text-lg font-bold">VS</div>
+                <div className="text-xl font-semibold">{post.msg2}</div>
+              </div>
+          
+            </div>
+          </Link>
+             
           ))}
         </div>
       </div>
